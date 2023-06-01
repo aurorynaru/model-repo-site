@@ -3,11 +3,12 @@ import dotenv from 'dotenv'
 dotenv.config()
 export const checkFiles = async (req, res, next) => {
     try {
-        const modelUpload = req.files.find(
-            (file) =>
-                /^application\/(zip|octet-stream)$/i.test(file.mimetype) ||
-                /\.(pth|index|zip)$/i.test(file.name.split('.'))
+        const modelUpload = req.files.find((file) =>
+            /^application\/(zip|octet-stream)$/i.test(file.mimetype)
         )
+
+        console.log(req.files)
+        console.log(req.body)
         const imageUpload = req.files.find((file) =>
             /^image\/(jpeg|png|jpg)$/i.test(file.mimetype)
         )

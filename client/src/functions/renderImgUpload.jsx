@@ -134,7 +134,7 @@ export const renderUploadButtonModel = (
                         <input
                             className=''
                             id={inputName}
-                            name='files'
+                            name='image'
                             type='file'
                             onChange={(event) => {
                                 const { files } = event.target
@@ -153,17 +153,6 @@ export const renderUploadButtonModel = (
                                         }
                                     })
                                 }
-                                // if (currentFiles.length > 0) {
-                                //     currentFiles.forEach((file) => {
-                                //         if (
-                                //             /^image\/(jpeg|png|jpg)$/i.test(
-                                //                 file.type
-                                //             )
-                                //         ) {
-                                //             currentFiles = file
-                                //         }
-                                //     })
-                                // }
 
                                 const updatedFiles = [...filtered, ...fileList]
 

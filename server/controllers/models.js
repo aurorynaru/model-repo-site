@@ -154,7 +154,7 @@ export const createModelPost = async (req, res) => {
 export const getModels = async (req, res) => {
     try {
         const modelList = await Model.find()
-        console.log(modelList)
+
         res.status(200).json(modelList)
     } catch (err) {
         res.status(409).json({ error: err.message })

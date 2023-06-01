@@ -18,13 +18,16 @@ import { useSelector } from 'react-redux'
 
 const PostModel = () => {
     const token = useSelector((state) => state.token)
+    const username_id = useSelector((state) => state.user.username_id)
 
     const navigate = useNavigate()
     const initialValues = {
+        username_id,
+        image: '',
         title: '',
         tags: [],
         files: [],
-        model_character: '',
+        model_character: 'test',
         model_for: '',
         epoch: '',
         description: '',
@@ -44,6 +47,7 @@ const PostModel = () => {
     const MAX_FILE_SIZE = 1000 * 1024 * 1024
 
     const Schema = yup.object().shape({
+        image: yup.string(),
         title: yup.string().min(3).max(100).required('required'),
         model_character: yup.string(),
         model_for: yup
@@ -75,30 +79,25 @@ const PostModel = () => {
             })
         ),
         tags: yup.array().min(1).max(10),
-        files: yup
-            .array()
-            .of(
-                yup
-                    .mixed()
-                    .test('fileFormat', 'Invalid file format', (value) => {
-                        if (!value) return false
-                        const validExtensions = [
-                            '.pth',
-                            '.zip',
-                            '.index',
-                            '.png',
-                            '.jpeg',
-                            '.jpg',
-                            '.mp3',
-                            '.wav',
-                            '.opus'
-                        ]
-                        const fileExtension = '.' + value.name.split('.').pop()
+        files: yup.array().of(
+            yup.mixed().test('fileFormat', 'Invalid file format', (value) => {
+                if (!value) return false
+                const validExtensions = [
+                    '.pth',
+                    '.zip',
+                    '.index',
+                    '.png',
+                    '.jpeg',
+                    '.jpg',
+                    '.mp3',
+                    '.wav',
+                    '.opus'
+                ]
+                const fileExtension = '.' + value.name.split('.').pop()
 
-                        return validExtensions.includes(fileExtension)
-                    })
-            )
-            .required('Please upload model files')
+                return validExtensions.includes(fileExtension)
+            })
+        )
     })
 
     const tagsList = [
@@ -184,7 +183,13 @@ const PostModel = () => {
         const formData = new FormData()
 
         for (let value in values) {
-            formData.append(value, values[value])
+            if (value == 'files') {
+                values[value].forEach((file) => {
+                    formData.append('files', file)
+                })
+            } else {
+                formData.append(value, values[value])
+            }
         }
 
         const savedUserResponse = await axios.post(
@@ -233,7 +238,7 @@ const PostModel = () => {
                                     values,
                                     setFieldValue,
                                     errors,
-                                    'files',
+                                    'image',
                                     touched
                                 )}
 
@@ -314,7 +319,7 @@ const PostModel = () => {
                                         </span>
                                     ))}
                                 </div>
-                                {console.log(values)}
+
                                 <button
                                     className='py-2 text-sm  disabled:bg-opacity-50 px-1 cursor-pointer w-full truncate rounded-tr-md rounded-md  bg-green-light text-dark hover:bg-white-green'
                                     type='button'
@@ -443,7 +448,6 @@ const PostModel = () => {
                             </div>
                             <Dropzone
                                 acceptedFiles='.pth,.index,.zip'
-                                multiple={false}
                                 onDrop={(event) =>
                                     handleUploadDropzone(
                                         values.files,

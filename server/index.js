@@ -38,6 +38,7 @@ const PORT = process.env.PORT
 const upload = multer({ storage: multer.memoryStorage() })
 
 app.post('/register', upload.single('image'), processAvatar, register)
+
 //add verify Token
 app.post(
     '/models/post',
