@@ -39,7 +39,13 @@ const upload = multer({ storage: multer.memoryStorage() })
 
 app.post('/register', upload.single('image'), processAvatar, register)
 //add verify Token
-app.post('/models/post', upload.array('files'), checkFiles, createModelPost)
+app.post(
+    '/models/post',
+    upload.array('files'),
+    verifyToken,
+    checkFiles,
+    createModelPost
+)
 
 //routes
 

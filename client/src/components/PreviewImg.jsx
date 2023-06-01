@@ -18,7 +18,7 @@ const PreviewImg = ({ file, width, height }) => {
         <div className='flex items-center flex-col max-w-[550px] max-h-[350px] '>
             <img
                 src={preview}
-                className={`object-cover overflow-hidden rounded-lg `}
+                className={`object-cover  overflow-hidden rounded-lg `}
                 alt='Preview'
                 height={height}
                 width={width}

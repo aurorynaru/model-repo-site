@@ -13,8 +13,12 @@ import CustomSelect from '../components/customSelect'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import CustomTextBox from '../components/CustomTextBox'
 import CustomText from '../components/CustomText'
+import axios from 'axios'
+import { useSelector } from 'react-redux'
 
 const PostModel = () => {
+    const token = useSelector((state) => state.token)
+
     const navigate = useNavigate()
     const initialValues = {
         title: '',
@@ -25,7 +29,8 @@ const PostModel = () => {
         epoch: '',
         description: '',
         steps: '',
-        audioTitle1: ''
+        audioTitle1: '',
+        random: ''
     }
     const SUPPORTED_FILE_TYPES = [
         'png',
@@ -70,12 +75,31 @@ const PostModel = () => {
             })
         ),
         tags: yup.array().min(1).max(10),
-        files: yup.array().required('Please upload model files')
-    })
+        files: yup
+            .array()
+            .of(
+                yup
+                    .mixed()
+                    .test('fileFormat', 'Invalid file format', (value) => {
+                        if (!value) return false
+                        const validExtensions = [
+                            '.pth',
+                            '.zip',
+                            '.index',
+                            '.png',
+                            '.jpeg',
+                            '.jpg',
+                            '.mp3',
+                            '.wav',
+                            '.opus'
+                        ]
+                        const fileExtension = '.' + value.name.split('.').pop()
 
-    const handleSubmit = async (values) => {
-        console.log(values)
-    }
+                        return validExtensions.includes(fileExtension)
+                    })
+            )
+            .required('Please upload model files')
+    })
 
     const tagsList = [
         'tag1',
@@ -107,15 +131,19 @@ const PostModel = () => {
 
         if (!isMatch) {
             setSelectedTags([...selectedTags, tag])
-            setFieldValue('tags', [...selectedTags, tag])
+            const array = [...selectedTags, tag]
+            setFieldValue('tags', array)
         } else {
             const filteredTags = selectedTags.filter(
                 (selectedTag) => selectedTag != tag
             )
 
             setSelectedTags([...filteredTags])
-            setFieldValue('tags', [...filteredTags])
+            const array = [...filteredTags]
+            setFieldValue('tags', array)
         }
+
+        setInputTag('')
     }
 
     const handleUpload = (formikFiles, event, setFieldValue) => {
@@ -152,6 +180,31 @@ const PostModel = () => {
         setFieldValue('files', updatedFiles)
     }
 
+    const handleSubmit = async (values, onSubmitProps) => {
+        const formData = new FormData()
+
+        for (let value in values) {
+            formData.append(value, values[value])
+        }
+
+        const savedUserResponse = await axios.post(
+            'http://localhost:7777/models/post',
+            formData,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            }
+        )
+
+        const saved = await savedUserResponse.json()
+        // onSubmitProps.resetForm()
+        if (savedUser) {
+            console.log('sat')
+        }
+    }
+
     return (
         <>
             <Navbar />
@@ -172,7 +225,7 @@ const PostModel = () => {
                     }) => (
                         <Form
                             autoComplete='off'
-                            className='flex flex-col gap-5 pt-5  mt-10 w-1/3 mx-auto shadow-lg rounded-md bg-neutral-800'
+                            className='flex flex-col gap-5 pt-5  mt-10 w-1/3 mx-auto shadow-lg rounded-md bg-neutral-800 min-w-[550px]'
                             onSubmit={handleSubmit}
                         >
                             <div className='px-2 gap-4 flex flex-col'>
@@ -238,6 +291,15 @@ const PostModel = () => {
                                     </div>
                                 </div>
 
+                                <CustomInput
+                                    label='Tags'
+                                    type='text'
+                                    placeholder='Tags. crepe, crepev2, streamer '
+                                    value={inputTag}
+                                    onChange={(e) => {
+                                        setInputTag(e.target.value)
+                                    }}
+                                />
                                 <div className='flex gap-2 overflow-x-auto relative'>
                                     {selectedTags.map((tag) => (
                                         <span
@@ -252,24 +314,11 @@ const PostModel = () => {
                                         </span>
                                     ))}
                                 </div>
-                                <label htmlFor='tags'>Tags:</label>
-                                <Field
-                                    className='text-dark px-2 text-sm'
-                                    type='text'
-                                    id='tags'
-                                    name='tags'
-                                    component='input'
-                                    placeholder='Enter tags'
-                                    onChange={(event) => {
-                                        setInputTag(event.target.value.trim())
-                                        const inputTag =
-                                            event.target.value.trim()
-                                        setFieldValue('tags', inputTag)
-                                    }}
-                                />
+                                {console.log(values)}
                                 <button
-                                    className='py-2 text-sm   px-1 cursor-pointer w-full truncate rounded-tr-md rounded-md  bg-green-light text-dark hover:bg-white-green'
+                                    className='py-2 text-sm  disabled:bg-opacity-50 px-1 cursor-pointer w-full truncate rounded-tr-md rounded-md  bg-green-light text-dark hover:bg-white-green'
                                     type='button'
+                                    disabled={!inputTag}
                                     onClick={() => {
                                         handleTagSelection(
                                             inputTag,
@@ -282,11 +331,11 @@ const PostModel = () => {
                                 </button>
 
                                 <div className='relative top-[-10px] '>
-                                    {values.tags && inputTag ? (
+                                    {inputTag ? (
                                         <div className='flex flex-col justify-center overflow-y-scroll  max-h-[200px] w-auto h-auto absolute bg-neutral-900 '>
                                             {tagsList
                                                 .filter((tag) =>
-                                                    tag.includes(values.tags)
+                                                    tag.includes(inputTag)
                                                 )
                                                 .map((tag) => {
                                                     return (
@@ -296,7 +345,8 @@ const PostModel = () => {
                                                             onClick={() => {
                                                                 handleTagSelection(
                                                                     tag,
-                                                                    values.tags
+                                                                    values.tags,
+                                                                    setFieldValue
                                                                 )
                                                             }}
                                                         >
@@ -323,58 +373,71 @@ const PostModel = () => {
                                 </div>
 
                                 <FieldArray name='files'>
-                                    <div className='w-full'>
-                                        {values.files.length > 0 &&
-                                        values.files.filter((file) =>
-                                            /^audio\//i.test(file.type)
-                                        )
-                                            ? values.files.map(
-                                                  (file, index) => {
-                                                      if (
-                                                          /^audio\//i.test(
-                                                              file.type
-                                                          )
-                                                      ) {
-                                                          return (
-                                                              <div key={index}>
-                                                                  <audio
-                                                                      src={URL.createObjectURL(
-                                                                          values
-                                                                              .files[
-                                                                              index
-                                                                          ]
-                                                                      )}
-                                                                      controls
-                                                                  />
-                                                              </div>
-                                                          )
+                                    <div className='w-full '>
+                                        <div className='w-[300px] h-[54px] mb-1'>
+                                            {values.files.length > 0 &&
+                                            values.files.filter((file) =>
+                                                /^audio\//i.test(file.type)
+                                            )
+                                                ? values.files.map(
+                                                      (file, index) => {
+                                                          if (
+                                                              /^audio\//i.test(
+                                                                  file.type
+                                                              )
+                                                          ) {
+                                                              return (
+                                                                  <div
+                                                                      key={
+                                                                          index
+                                                                      }
+                                                                  >
+                                                                      <audio
+                                                                          src={URL.createObjectURL(
+                                                                              values
+                                                                                  .files[
+                                                                                  index
+                                                                              ]
+                                                                          )}
+                                                                          controls
+                                                                      />
+                                                                  </div>
+                                                              )
+                                                          }
                                                       }
-                                                  }
-                                              )
-                                            : null}
-                                        <Field
-                                            className='text-dark'
-                                            name='audioTitle1'
-                                            type='text'
-                                            placeholder='Enter audio sample name'
-                                        />
-                                        <input
-                                            name='file'
-                                            type='file'
-                                            accept='audio/*'
-                                            onChange={(event) =>
-                                                handleUpload(
-                                                    values.files,
-                                                    event,
-                                                    setFieldValue
-                                                )
-                                            }
-                                        />
-                                        <ErrorMessage
-                                            name='files'
-                                            component='div'
-                                            className='text-red-500'
-                                        />
+                                                  )
+                                                : ''}
+                                        </div>
+                                        <div className='flex  flex-col justify-center text-sm'>
+                                            <Field
+                                                onChange={handleChange}
+                                                onBlur={handleBlur}
+                                                className={`${tailWindCss} my-1 ${
+                                                    errors.audioTitle1 &&
+                                                    touched.audioTitle1
+                                                        ? ` focus:ring-red-500 border-red-500`
+                                                        : ''
+                                                }`}
+                                                name='audioTitle1'
+                                                type='text'
+                                                placeholder='Enter audio sample name'
+                                            />
+                                            <div className='sat'>
+                                                <input
+                                                    className='border-none'
+                                                    name='file'
+                                                    type='file'
+                                                    accept='audio/*'
+                                                    onChange={(event) =>
+                                                        handleUpload(
+                                                            values.files,
+                                                            event,
+                                                            setFieldValue
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </FieldArray>
                             </div>
@@ -393,12 +456,31 @@ const PostModel = () => {
                                     return (
                                         <div
                                             {...getRootProps()}
-                                            className='cursor-pointer border-dashed border-2 h-5 hover:opacity-70 flex justify-center items-center'
+                                            className='cursor-pointer py-6 m-1 border-dashed border-[3.5px] border-opacity-70 text-white-green hover:border-opacity-100 border-gray-500  flex justify-center items-center bg-inherit bg-opacity-50'
                                         >
                                             <input {...getInputProps()}></input>
-                                            {values.files == false ? (
+                                            {values.files == false ||
+                                            values.files.find((file) => {
+                                                if (
+                                                    /^application\/(x-zip-compressed|octet-stream|^$)$/i.test(
+                                                        file.type
+                                                    ) ||
+                                                    (file.name
+                                                        .split('.')
+                                                        .pop() ===
+                                                        'pth') |
+                                                        (file.name
+                                                            .split('.')
+                                                            .pop() ===
+                                                            'index')
+                                                ) {
+                                                    return true
+                                                } else {
+                                                    return undefined
+                                                }
+                                            }) === undefined ? (
                                                 <p className=' font-light text-xs text-slate-200 '>
-                                                    upload model files
+                                                    Upload model files
                                                 </p>
                                             ) : (
                                                 <p className=' font-light text-xs text-slate-200'>
@@ -407,18 +489,14 @@ const PostModel = () => {
                                                         : values.files.map(
                                                               (file) => {
                                                                   if (
-                                                                      /^application\/(x-zip-compressed|octet-stream)$/i.test(
+                                                                      /^application\/(x-zip-compressed|octet-stream|^$)$/i.test(
                                                                           file.type
                                                                       ) ||
                                                                       /^$/.test(
                                                                           file.type
                                                                       )
                                                                   ) {
-                                                                      return (
-                                                                          file.name +
-                                                                          ',' +
-                                                                          ' '
-                                                                      )
+                                                                      return `${file.name} `
                                                                   }
                                                               }
                                                           )}

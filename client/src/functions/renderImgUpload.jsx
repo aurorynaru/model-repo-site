@@ -84,7 +84,7 @@ export const renderUploadButtonModel = (
         <>
             <div className='flex justify-start flex-col'>
                 <div className='flex flex-col text-center max-w-full '>
-                    <div className='max-h-[352px] max-w-[352px] mx-auto mb-4 '>
+                    <div className='max-h-[352px] max-w-[352px]  mx-auto mb-4  w-[550px] h-[350px] border-2 flex items-center p-1'>
                         {values.files.length > 0 &&
                         values.files.filter((file) =>
                             /^image\/(jpeg|png|jpg)$/i.test(file.mimetype)
@@ -177,7 +177,7 @@ export const renderUploadButtonModel = (
                         >
                             <span
                                 className={`py-2 text-sm border-2 border-l-0 px-1 cursor-pointer w-full truncate border-green-light rounded-tr-md rounded-br-md ${
-                                    errors.image && touched.image
+                                    errors.files && touched.files
                                         ? ' border-red-500 text-red-300'
                                         : ''
                                 } truncate`}
