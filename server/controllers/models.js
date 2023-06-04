@@ -1,3 +1,4 @@
+import dotenv from 'dotenv'
 import { getRandomName } from '../functions/randomName.js'
 import { Model } from '../models/Model.js'
 import { modelZip } from './modelUpload.js'
@@ -6,8 +7,23 @@ import { imgFormat } from './imageUpload.js'
 import { Audio } from '../models/Audio.js'
 import { User } from '../models/User.js'
 import mongoose from 'mongoose'
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 const defaultLarge = process.env.DEFAULT_LARGE
 const defaultOriginal = process.env.DEFAULT_ORIGINAL
+
+dotenv.config()
+
+const bucketRegion = process.env.BUCKET_REGION
+const accessKey = process.env.ACCESS_KEY
+const secretAccessKey = process.env.SECRET_ACCESS_KEY
+const s3 = new S3Client({
+    credentials: {
+        accessKeyId: accessKey,
+        secretAccessKey: secretAccessKey
+    },
+    region: bucketRegion
+})
 
 // create
 export const createModelPost = async (req, res) => {
@@ -68,7 +84,7 @@ export const createModelPost = async (req, res) => {
         const savedNewModel = await newModel.save()
 
         const modelDataName = savedNewModel._id.toString()
-        let audioCount = 0
+        let audioCount = 1
 
         if (isAudio) {
             req.files.forEach(async (file) => {
@@ -155,7 +171,111 @@ export const getModels = async (req, res) => {
     try {
         const modelList = await Model.find()
 
-        res.status(200).json(modelList)
+        const models = await Promise.all(
+            modelList.map(async (model) => {
+                const {
+                    description,
+                    downVotes,
+                    epoch,
+                    model_character,
+                    model_for,
+                    model_name,
+                    status,
+                    steps,
+                    tags,
+                    title,
+                    upVotes,
+                    uploader,
+                    _id
+                } = model
+
+                let img = []
+
+                if (model.img.length > 0) {
+                    const imgPromises = model.img.map(async (image) => {
+                        for (const key in image) {
+                            const imgParams = {
+                                Bucket: process.env.BUCKET_NAME_AVATAR,
+                                Key: image[key]
+                            }
+
+                            const command = new GetObjectCommand(imgParams)
+                            const link = await getSignedUrl(s3, command, {
+                                expiresIn: 3600
+                            })
+
+                            img.push({ [key]: encodeURIComponent(link) })
+                        }
+                    })
+
+                    await Promise.all(imgPromises)
+                }
+
+                let samples = []
+                if (model.samples.length > 0) {
+                    samples = await Promise.all(
+                        model.samples.map(async (sample) => {
+                            const sampleAudio = await Audio.findById(sample)
+
+                            if (!sampleAudio) {
+                                return
+                            }
+
+                            const sampleParams = {
+                                Bucket: process.env.BUCKET_NAME_AUDIO,
+                                Key: sampleAudio.audio
+                            }
+
+                            const command = new GetObjectCommand(sampleParams)
+                            const link = await getSignedUrl(s3, command, {
+                                expiresIn: 3600
+                            })
+
+                            return {
+                                audio: encodeURIComponent(link),
+                                title: sampleAudio.title
+                            }
+                        })
+                    )
+                }
+                let model_link
+
+                if (model.model_name) {
+                    const sampleParams = {
+                        Bucket: process.env.BUCKET_NAME_MODEL,
+                        Key: _id.toString() + '.zip'
+                    }
+
+                    const command = new GetObjectCommand(sampleParams)
+                    const link = await getSignedUrl(s3, command, {
+                        expiresIn: 3600
+                    })
+
+                    model_link = encodeURIComponent(link)
+                }
+
+                return {
+                    _id,
+                    description,
+                    downVotes,
+                    epoch,
+                    model_character,
+                    model_for,
+                    model_name,
+                    status,
+                    steps,
+                    tags,
+                    title,
+                    upVotes,
+                    uploader,
+                    img,
+                    model_link,
+                    samples
+                }
+            })
+        )
+
+        res.status(200).json(models)
     } catch (err) {
         res.status(409).json({ error: err.message })
     }

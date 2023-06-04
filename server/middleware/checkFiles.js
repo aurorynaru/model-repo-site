@@ -4,7 +4,9 @@ dotenv.config()
 export const checkFiles = async (req, res, next) => {
     try {
         const modelUpload = req.files.find((file) =>
-            /^application\/(zip|octet-stream)$/i.test(file.mimetype)
+            /^application\/(zip|octet-stream|x-zip-compressed)$/i.test(
+                file.mimetype
+            )
         )
 
         console.log(req.files)

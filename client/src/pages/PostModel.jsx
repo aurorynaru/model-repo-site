@@ -35,16 +35,6 @@ const PostModel = () => {
         audioTitle1: '',
         random: ''
     }
-    const SUPPORTED_FILE_TYPES = [
-        'png',
-        'jpeg',
-        'jpg',
-        'pth',
-        'index',
-        'zip',
-        'audio'
-    ]
-    const MAX_FILE_SIZE = 1000 * 1024 * 1024
 
     const Schema = yup.object().shape({
         image: yup.string(),
@@ -204,9 +194,9 @@ const PostModel = () => {
         )
 
         const saved = await savedUserResponse.json()
-        // onSubmitProps.resetForm()
-        if (savedUser) {
-            console.log('sat')
+        onSubmitProps.resetForm()
+        if (saved) {
+            navigate('/models/post')
         }
     }
 

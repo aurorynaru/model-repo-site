@@ -13,7 +13,7 @@ import PostModel from './pages/PostModel'
 
 function App() {
     const isAuth = Boolean(useSelector((state) => state.token))
-    console.log(isAuth)
+
     return (
         <div className=' dark:bg-body bg-neutral-100-100 text-neutral-900 dark:text-neutral-100 transition duration-500 ease-in-out'>
             <BrowserRouter>
